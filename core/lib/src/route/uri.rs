@@ -285,7 +285,8 @@ impl Metadata {
             }
         });
 
-        let trailing_path = path_segs.last().map_or(false, |p| p.trailing);
+        let trailing_path = path_segs.iter().any(|p| p.trailing);
+        // let trailing_path = path_segs.last().map_or(false, |p| p.trailing);
 
         Metadata {
             base_segs, path_segs, query_segs, static_query_fields,

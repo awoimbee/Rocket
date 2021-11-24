@@ -109,12 +109,8 @@ fn paths_match(route: &Route, req: &Request<'_>) -> bool {
     let req_segments = req.uri().path().segments();
 
     if route.uri.metadata.trailing_path {
-        // The last route segment can be trailing, which is allowed to be empty.
-        // So we can have one more segment in `route` than in `req` and match.
-        // ok if: req_segments.len() >= route_segments.len() - 1
-        if req_segments.len() + 1 < route_segments.len() {
-            return false;
-        }
+        // One or more route segment is trailing, we can't match on length alone
+        // TODO: special optim for trainling segment at end
     } else if route_segments.len() != req_segments.len() {
         return false;
     }
@@ -123,17 +119,57 @@ fn paths_match(route: &Route, req: &Request<'_>) -> bool {
         return true;
     }
 
-    for (route_seg, req_seg) in route_segments.iter().zip(req_segments) {
-        if route_seg.trailing {
-            return true;
-        }
+    let mut req_seg_iter = req_segments;
+    let mut route_seg_iter = route_segments.iter();
 
-        if !(route_seg.dynamic || route_seg.value == req_seg) {
-            return false;
+    loop {
+        match (route_seg_iter.next(), req_seg_iter.next()) {
+            (Some(route_seg), Some(mut req_seg)) => {
+                if route_seg.trailing {
+                    println!("trailing: {} {}", route_seg.value, req_seg);
+                    let next_route_seg = match route_seg_iter.next() {
+                        Some(next_route_seg) => next_route_seg,
+                        None => return true, // is actually trailing
+                    };
+                    if next_route_seg.dynamic {
+                        unreachable!("dynamic segment after a trailing segment");
+                    }
+                    // if next segment is dynamic, we can't match
+                    // TODO: forbid dynamic segment after trailing segment
+                    while next_route_seg.value != req_seg {
+                        println!("does it match ?: {} {}", next_route_seg.value, req_seg);
+                        req_seg =  match req_seg_iter.next() {
+                            Some(req_seg) => req_seg,
+                            None => return true,
+                        }
+                    }
+                }
+                if route_seg.dynamic {
+                    continue;
+                }
+                if !(route_seg.dynamic || route_seg.value == req_seg) {
+                    return false;
+                }
+            }
+            (Some(route_seg), None) => { return route_seg.trailing }
+            (None, None) => return true,
+            _ => return false
         }
     }
 
-    true
+
+
+    // for (route_seg, req_seg) in route_segments.iter().zip(req_segments) {
+    //     if route_seg.trailing {
+    //         return true;
+    //     }
+
+    //     if !(route_seg.dynamic || route_seg.value == req_seg) {
+    //         return false;
+    //     }
+    // }
+
+
 }
 
 fn queries_match(route: &Route, req: &Request<'_>) -> bool {

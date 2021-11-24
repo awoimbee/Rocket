@@ -164,6 +164,8 @@ fn param_guard_decl(guard: &Guard) -> TokenStream {
                 }
             }
         },
+        // erh, this is the thing that matches the params
+        // routed_segments(#i..) returns a skip iterator
         true => quote_spanned! { ty.span() =>
             match <#ty as #FromSegments>::from_segments(#__req.routed_segments(#i..)) {
                 #_Ok(__v) => __v,
@@ -311,7 +313,7 @@ fn sentinels_expr(route: &Route) -> TokenStream {
 
 fn codegen_route(route: Route) -> Result<TokenStream> {
     use crate::exports::*;
-
+//aS
     // Generate the declarations for all of the guards.
     let request_guards = route.request_guards.iter().map(request_guard_decl);
     let param_guards = route.param_guards().map(param_guard_decl);

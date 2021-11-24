@@ -17,7 +17,7 @@ pub enum Parameter {
 pub struct Dynamic {
     pub name: Name,
     pub index: usize,
-    pub trailing: bool,
+    pub trailing: bool, // This is the issue
 }
 
 #[derive(Debug, Clone)]

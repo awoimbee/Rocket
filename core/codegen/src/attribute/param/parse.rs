@@ -21,7 +21,6 @@ pub enum ErrorKind {
     Empty,
     BadIdent,
     Ignored,
-    EarlyTrailing,
     NoTrailing,
     Static,
 }
@@ -88,28 +87,28 @@ impl Parameter {
         source: &str,
         source_span: Span,
     ) -> impl Iterator<Item = Result<Self, Error<'_>>> {
-        let mut trailing: Option<(&str, Span)> = None;
+        // let mut trailing: Option<(&str, Span)> = None;
 
         // We check for empty segments when we parse an `Origin` in `FromMeta`.
         source.split(P::DELIMITER)
             .filter(|s| !s.is_empty())
             .enumerate()
             .map(move |(i, segment)| {
-                if let Some((trail, span)) = trailing {
-                    let error = Error::new(trail, span, ErrorKind::EarlyTrailing)
-                        .source(source, source_span);
+                // if let Some((trail, span)) = trailing {
+                //     let error = Error::new(trail, span, ErrorKind::EarlyTrailing)
+                //         .source(source, source_span);
 
-                    return Err(error);
-                }
+                //     return Err(error);
+                // }
 
                 let segment_span = subspan(segment, source, source_span);
                 let mut parsed = Self::parse::<P>(segment, segment_span)
                     .map_err(|e| e.source(source, source_span))?;
 
                 if let Some(ref mut d) = parsed.dynamic_mut() {
-                    if d.trailing {
-                        trailing = Some((segment, segment_span));
-                    }
+                    // if d.trailing {
+                    //     trailing = Some((segment, segment_span));
+                    // }
 
                     d.index = i;
                 }
@@ -126,7 +125,6 @@ impl std::fmt::Display for ErrorKind {
             ErrorKind::BadIdent => "invalid identifier".fmt(f),
             ErrorKind::Ignored => "parameter must be named".fmt(f),
             ErrorKind::NoTrailing => "parameter cannot be trailing".fmt(f),
-            ErrorKind::EarlyTrailing => "unexpected text after trailing parameter".fmt(f),
             ErrorKind::Static => "unexpected static parameter".fmt(f),
         }
     }
@@ -158,12 +156,12 @@ impl From<Error<'_>> for Diagnostic {
                 error.span.error(error.kind.to_string())
                     .help("use a name such as `_guard` or `_param`")
             }
-            ErrorKind::EarlyTrailing => {
-                trailspan(error.segment, error.source, error.source_span)
-                    .error(error.kind.to_string())
-                    .help("a trailing parameter must be the final component")
-                    .span_note(error.span, "trailing param is here")
-            }
+            // ErrorKind::EarlyTrailing => {
+            //     trailspan(error.segment, error.source, error.source_span)
+            //         .error(error.kind.to_string())
+            //         .help("a trailing parameter must be the final component")
+            //         .span_note(error.span, "trailing param is here")
+            // }
             ErrorKind::NoTrailing => {
                 let candidate = candidate_from_malformed(error.segment);
                 error.span.error(error.kind.to_string())

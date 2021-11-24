@@ -1,3 +1,5 @@
+#![feature(iter_intersperse)]
+
 #[macro_use] extern crate rocket;
 
 #[cfg(test)] mod tests;
@@ -9,6 +11,9 @@ use rocket::response::stream::{EventStream, Event};
 use rocket::serde::{Serialize, Deserialize};
 use rocket::tokio::sync::broadcast::{channel, Sender, error::RecvError};
 use rocket::tokio::select;
+use rocket::request::FromSegments;
+use rocket::http::uri::Segments;
+use rocket::http::uri::fmt::Path;
 
 #[derive(Debug, Clone, FromForm, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, UriDisplayQuery))]
@@ -21,10 +26,23 @@ struct Message {
     pub message: String,
 }
 
+struct Lol {
+    pub inner: String
+}
+impl FromSegments<'_> for Lol {
+    type Error = ();
+    fn from_segments(segments: Segments<'_, Path>) -> Result<Self, Self::Error> {
+        println!("{:?}", segments);
+        Ok(Lol{inner: segments.intersperse("/").collect::<String>()})
+    }
+}
+
 /// Returns an infinite stream of server-sent events. Each event is a message
 /// pulled from a broadcast queue sent by the `post` handler.
-#[get("/events")]
-async fn events(queue: &State<Sender<Message>>, mut end: Shutdown) -> EventStream![] {
+#[get("/<hello>/<world>/<lol..>/events")]
+async fn events(queue: &State<Sender<Message>>, mut end: Shutdown, hello: &str, lol: Lol, world: &str) -> EventStream![] {
+    println!("lol: {:?}", lol.inner);
+    println!("megalol: {}, {}", hello, world);
     let mut rx = queue.subscribe();
     EventStream! {
         loop {
